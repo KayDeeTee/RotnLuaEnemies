@@ -53,7 +53,10 @@ internal static class RREnemyControllerPatch
             ret["TeleportDestination"] = DynValue.NewTuple([DynValue.NewNumber(enemy._portalOutGridPosition.x), DynValue.NewNumber(enemy._portalOutGridPosition.y)]); 
 
             ret["IsSnappingToActionRow"] = DynValue.NewBoolean(enemy.IsSnappingToActionRow);
-            ret["ActionRowTargetGridPosition"] = DynValue.NewTuple([DynValue.NewNumber(enemy._actionRowMoveTargetGridPosition.x), DynValue.NewNumber(enemy._actionRowMoveTargetGridPosition.y)]); 
+            ret["ActionRowTargetGridPosition"] = DynValue.NewTuple([DynValue.NewNumber(enemy._actionRowMoveTargetGridPosition.x), DynValue.NewNumber(enemy._actionRowMoveTargetGridPosition.y)]);
+
+            ret["OnFire"] = DynValue.NewBoolean(enemy.HasStatusEffectActive(RREnemyStatusEffect.Burning));
+            ret["BurningSpeed"] = DynValue.NewNumber(enemy._burningSpeedUpdateRateOverride);
 
             //animation
             ret["CurrentAnimation"] = DynValue.NewString(er.current_anim);
