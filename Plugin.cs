@@ -36,8 +36,9 @@ public class EnemyPlugin : BaseUnityPlugin
         Harmony.CreateAndPatchAll(typeof(EnemyPlugin));
         Harmony.CreateAndPatchAll(typeof(RRStageControllerPatch));
         Harmony.CreateAndPatchAll(typeof(RREnemyControllerPatch));
-        Harmony.CreateAndPatchAll(typeof(RREnemyPatch));
+        //Harmony.CreateAndPatchAll(typeof(RREnemyPatch));
         Harmony.CreateAndPatchAll(typeof(RRBeatmapPatch));
+        Harmony.CreateAndPatchAll(typeof(RRLuaEnemyPatches));
 
         Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 

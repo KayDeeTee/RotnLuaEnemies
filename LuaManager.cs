@@ -25,6 +25,7 @@ public static class LuaManager
     public static Dictionary<int, int> LuaEnemyRemaps = new Dictionary<int, int>();
     public static Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
     public static Dictionary<int, Script> EnemyLua = new Dictionary<int, Script>();
+    public static Dictionary<int, string> EnemyLuaPath = new Dictionary<int, string>();
     public static Script[] GlobalLua;
     public static void Reset()
     {
@@ -34,6 +35,7 @@ public static class LuaManager
         //}
         GlobalLua = [];
         EnemyLua = new Dictionary<int, Script>();
+        EnemyLuaPath = new Dictionary<int, string>();
         LuaEnemyRemaps = new Dictionary<int, int>();
 
 
@@ -48,7 +50,7 @@ public static class LuaManager
     {
         if (!LuaManager.EnemyLua.ContainsKey(lua_id)) return;
         Script lua = LuaManager.EnemyLua[lua_id];
-        lua.Globals["instance"] = instance; 
+        lua.Globals["instance"] = instance;
     }
 
     public static DynValue RunFunction(int lua_id, string func_name, object[] args)
@@ -81,6 +83,17 @@ public static class LuaManager
         if (dynValue.Type != DataType.Number) return null;
         return (int)dynValue.Number;
     }
+    public static Script GetScriptInstance(int id)
+    {
+        if (EnemyLuaPath.ContainsKey(id))
+        {
+            Script lua = new Script(MoonSharp.Interpreter.CoreModules.Preset_HardSandbox);
+            lua.Options.ScriptLoader = new FileSystemScriptLoader();
+            lua.DoFile(EnemyLuaPath[id]);
+            return lua;
+        }
+        return null;
+    }
 
     public static void LoadFile(string path)
     {
@@ -89,32 +102,23 @@ public static class LuaManager
         Script lua = new Script(MoonSharp.Interpreter.CoreModules.Preset_HardSandbox);
         lua.Options.ScriptLoader = new FileSystemScriptLoader();
         //Create Vars / Functions
-        lua.Globals["HOME_ROW"] = RRGridView.HOME_ROW_COORD.y;
         lua.Globals["log"] = (System.Object)Log;
         lua.Globals["load_texture"] = (System.Object)LoadTexture;
-        lua.Globals["add_spawn"] = (System.Object)AddSpawns;
-        lua.Globals["set_beat_flip"] = (System.Object)SetBeatFlip;
-        lua.Globals["set_health"] = (System.Object)SetHealth;
-        lua.Globals["play_anim"] = (System.Object)PlayAnim;
-        lua.Globals["heal_player"] = (System.Object)ForceHeal;
-        lua.Globals["hit_player"] = (System.Object)ForceDamage;
-        lua.Globals["flip"] = (System.Object)FlipHorizontally;
 
         try
         {
             lua.DoFile(path);
 
-            Log(String.Format("Attempting to run on_load"));
-            DynValue lua_on_load = lua.Globals.Get("on_load");
-            if (lua_on_load.IsNotNil())
+            DynValue dv = lua.Globals.Get("Preloads");
+            if (!dv.IsNil())
             {
-                if (lua_on_load.Type == MoonSharp.Interpreter.DataType.Function)
+                if (dv.Type == MoonSharp.Interpreter.DataType.Function)
                 {
-                    lua.Call(lua_on_load);
+                    dv.Function.Call();
                 }
             }
 
-            bool global_lua_file = true;
+
             int? lua_id = GetInt(lua, "lua_id");
             if (lua_id is int l_id)
             {
@@ -124,12 +128,8 @@ public static class LuaManager
                     Log(String.Format("Found enemy remap {0} -> {1}", l_id, o_id));
                     LuaEnemyRemaps[l_id] = o_id;
                     EnemyLua[l_id] = lua;
-                    global_lua_file = false;
+                    EnemyLuaPath[l_id] = path;
                 }
-            }
-            if (global_lua_file)
-            {
-                GlobalLua.Append(lua);
             }
         }
         catch (ScriptRuntimeException ex)
@@ -172,7 +172,8 @@ public static class LuaManager
         }
     }
 
-    public static void set_property_by_name( object instance, string name, object value ){
+    public static void set_property_by_name(object instance, string name, object value)
+    {
         Type t = instance.GetType();
         PropertyInfo property = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         property = property.DeclaringType.GetProperty(name);
@@ -183,7 +184,7 @@ public static class LuaManager
         else
         {
             property = t.BaseType.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            property.SetValue(instance, value, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, null, null); 
+            property.SetValue(instance, value, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, null, null);
         }
     }
 
@@ -202,34 +203,22 @@ public static class LuaManager
     public static void set_var_by_name(object instance, string name, object value)
     {
         Type t = instance.GetType();
-        FieldInfo property = t.GetField(name,  BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo property = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         if (property != null)
         {
             property.SetValue(instance, Convert.ChangeType(value, property.FieldType));
         }
         else
         {
-            property = t.BaseType.GetField(name, BindingFlags.Public |  BindingFlags.NonPublic | BindingFlags.Instance);
+            property = t.BaseType.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             property.SetValue(instance, Convert.ChangeType(value, property.FieldType));
         }
     }
 
-    public static object get_var_by_name( object instance, string name ){
+    public static object get_var_by_name(object instance, string name)
+    {
         FieldInfo property = instance.GetType().GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         return property.GetValue(instance);
-    }
-
-    //Putting this in EnemyPatch seemed to upset it so its going here
-    private static void SetBeatFlip(string guid, bool setting)
-    {
-        RREnemyControllerPatch.get_enemy(guid)._shouldFlipEnemyOnBeat = setting;
-        //set_var_by_name(RREnemyControllerPatch.get_enemy(guid), "_shouldFlipEnemyOnBeat", setting);
-    }
-
-    private static void SetHealth(string guid, int health)
-    {
-        RREnemyControllerPatch.get_enemy(guid).CurrentHealthValue = health;
-        //set_property_by_name(RREnemyControllerPatch.get_enemy(guid), "CurrentHealthValue", health);
     }
 
     private static void ForceHeal(string guid, int amount)
@@ -244,30 +233,24 @@ public static class LuaManager
     private static void ForceDamage(string guid, int amount)
     {
         RREnemy enemy = RREnemyControllerPatch.get_enemy(guid);
-        RRStageControllerPatch.instance.HandleEnemyAttack(enemy.CurrentGridPosition, amount, 0,  enemy.DisplayName, false, false, enemy.EnemyTypeId);
+        RRStageControllerPatch.instance.HandleEnemyAttack(enemy.CurrentGridPosition, amount, 0, enemy.DisplayName, false, false, enemy.EnemyTypeId);
     }
 
-    private static void FlipHorizontally(string guid)
+    private static void CreateSound(string path)
     {
-        RREnemy enemy = RREnemyControllerPatch.get_enemy(guid);
-        enemy.FlipHorizontally();
-    }
+        /*
+        MODE mode = MODE._2D | MODE.CREATESTREAM | MODE.ACCURATETIME | MODE.NONBLOCKING;
+        CREATESOUNDEXINFO createsoundexinfo = new CREATESOUNDEXINFO
+        {
+            initialseekposition = 0.0f,
+            initialseekpostype = TIMEUNIT.MS,
+            cbsize = MarshalHelper.SizeOf(typeof(CREATESOUNDEXINFO))
+        };
+        Sound customSound;
+        RuntimeManager.CoreSystem.createSound(path, mode, ref createsoundexinfo, out customSound);
 
-    private static void PlayAnim(string guid, string anim_name, bool loops, float beat_duration)
-    {
-        var enemy_ref = RREnemyControllerPatch.get_enemy_ref(guid);
-        enemy_ref.anim_progress = 0.0f;
-        enemy_ref.anim_loops = loops;
-        enemy_ref.current_anim = anim_name;
-        enemy_ref.anim_length = beat_duration;
+        customSound.release();
+        customSound.clearHandle();
+        */
     }
-
-    private static void AddSpawns(string guid, int id, int rel_x, int rel_y, bool facing)
-    {
-        SpawnEnemyOnDeathData spawnEnemyOnDeathData = default(SpawnEnemyOnDeathData);
-        spawnEnemyOnDeathData.EnemyId = id;
-        spawnEnemyOnDeathData.RelativeGridPostionToSpawnAt = new int2(rel_x, rel_y);
-        RREnemyControllerPatch.get_enemy(guid).EnemiesToSpawnOnDeath.Add(spawnEnemyOnDeathData);
-    }
-
 }

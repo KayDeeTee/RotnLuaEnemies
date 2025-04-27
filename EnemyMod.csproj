@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <Reference Include="ROTN">
-      <HintPath>lib/RiftOfTheNecroDancer.dll</HintPath>
+      <HintPath>lib/RiftReadable.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -57,10 +57,22 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Unity.Addressables">
+      <HintPath>lib/Unity.Addressables.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="FMODUnity">
       <HintPath>lib/FMODUnity.dll</HintPath>
     </Reference>
   </ItemGroup>
+    <ItemGroup>
+    <Reference Include="Unity.ResourceManager">
+      <HintPath>lib/Unity.ResourceManager.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+
     <ItemGroup>
     <Reference Include="Newtonsoft">
       <HintPath>lib/Newtonsoft.Json.dll</HintPath>
