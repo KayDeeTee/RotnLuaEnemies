@@ -27,7 +27,7 @@ public class EnemyPlugin : BaseUnityPlugin
         Logger = base.Logger;
 
         Logger.LogInfo(String.Format("BuildVer: {0}", BuildInfoHelper.Instance.BuildId));
-        if (BuildInfoHelper.Instance.BuildId != "1.3.0-b20559")
+        if (BuildInfoHelper.Instance.BuildId != "1.4.0-b20638")
         {
             Logger.LogInfo("Mod built for a previous version of the game, wait for an update or update this yourself.");
             return;

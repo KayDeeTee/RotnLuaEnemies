@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using HarmonyLib;
-using Newtonsoft.Json;
 using Shared.RhythmEngine;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 using EnemyMod;
 using UnityEngine;
 using RhythmRift;

@@ -115,6 +115,7 @@ internal static class RREnemyControllerPatch
     [HarmonyPrefix]
     public static bool SpawnEnemy(ref SpawnEnemyData spawnEnemyData, Guid groupId)
     {
+        if (spawnEnemyData.EnemyId == 404) return false;
         NextEnemyIsLua = false;
         if (LuaManager.LuaEnemyRemaps.ContainsKey(spawnEnemyData.EnemyId))
         {

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
@@ -26,54 +28,27 @@ public static class LuaManager
     public static Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
     public static Dictionary<int, Script> EnemyLua = new Dictionary<int, Script>();
     public static Dictionary<int, string> EnemyLuaPath = new Dictionary<int, string>();
-    public static Script[] GlobalLua;
+
+    public static Script? PlayerPortraitLua = null;
+    public static Script? CounterpartPortraitLua = null;
+
     public static void Reset()
     {
         //foreach (Script lua in GlobalLua)
         //{
         //theres no function to clean up the lua state so I guess it's just auto GC'd
         //}
-        GlobalLua = [];
         EnemyLua = new Dictionary<int, Script>();
         EnemyLuaPath = new Dictionary<int, string>();
         LuaEnemyRemaps = new Dictionary<int, int>();
-
+        PlayerPortraitLua = null;
+        CounterpartPortraitLua = null;
 
         foreach (string key in Sprites.Keys)
         {
             UnityEngine.Object.Destroy(Sprites[key]);
         }
         Sprites = new Dictionary<string, Sprite>();
-    }
-
-    public static void SetCurrentInstance(int lua_id, object instance)
-    {
-        if (!LuaManager.EnemyLua.ContainsKey(lua_id)) return;
-        Script lua = LuaManager.EnemyLua[lua_id];
-        lua.Globals["instance"] = instance;
-    }
-
-    public static DynValue RunFunction(int lua_id, string func_name, object[] args)
-    {
-        if (!LuaManager.EnemyLua.ContainsKey(lua_id)) return DynValue.Nil;
-        Script lua = LuaManager.EnemyLua[lua_id];
-        DynValue f = lua.Globals.Get(func_name);
-        if (f.IsNil()) return DynValue.Nil; ;
-        if (f.Type != MoonSharp.Interpreter.DataType.Function) return DynValue.Nil;
-        try
-        {
-            DynValue dv = lua.Call(f, args);
-            return dv;
-        }
-        catch (MoonSharp.Interpreter.ScriptRuntimeException ex)
-        {
-            Log(String.Format("LUA ScriptRuntimeEx: {0}", ex.DecoratedMessage));
-        }
-        catch (MoonSharp.Interpreter.SyntaxErrorException ex)
-        {
-            Log(String.Format("LUA SyntaxErrorEx: {0}", ex.DecoratedMessage));
-        }
-        return DynValue.Nil;
     }
 
     public static int? GetInt(Script lua_state, string var_name)
@@ -83,6 +58,15 @@ public static class LuaManager
         if (dynValue.Type != DataType.Number) return null;
         return (int)dynValue.Number;
     }
+
+    public static bool? GetBool(Script lua_state, string var_name)
+    {
+        DynValue dynValue = lua_state.Globals.Get(var_name);
+        if (dynValue.IsNil()) return null;
+        if (dynValue.Type != DataType.Boolean) return null;
+        return (bool)dynValue.Boolean;
+    }
+
     public static Script GetScriptInstance(int id)
     {
         if (EnemyLuaPath.ContainsKey(id))
@@ -109,15 +93,19 @@ public static class LuaManager
         {
             lua.DoFile(path);
 
-            DynValue dv = lua.Globals.Get("Preloads");
-            if (!dv.IsNil())
+            bool? player_override = GetBool(lua, "player_portrait_override");
+            if (player_override is bool player)
             {
-                if (dv.Type == MoonSharp.Interpreter.DataType.Function)
-                {
-                    dv.Function.Call();
-                }
+                PlayerPortraitLua = lua;
+                return;
             }
 
+            bool? counterpart_override = GetBool(lua, "counterpart_portrait_override");
+            if (counterpart_override is bool counterpart)
+            {
+                CounterpartPortraitLua = lua;
+                return;
+            }
 
             int? lua_id = GetInt(lua, "lua_id");
             if (lua_id is int l_id)
@@ -129,6 +117,16 @@ public static class LuaManager
                     LuaEnemyRemaps[l_id] = o_id;
                     EnemyLua[l_id] = lua;
                     EnemyLuaPath[l_id] = path;
+
+
+                    DynValue dv = lua.Globals.Get("Preloads");
+                    if (!dv.IsNil())
+                    {
+                        if (dv.Type == MoonSharp.Interpreter.DataType.Function)
+                        {
+                            dv.Function.Call();
+                        }
+                    }
                 }
             }
         }

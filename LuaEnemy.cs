@@ -140,6 +140,7 @@ class RRLuaEnemy : RREnemy
         script.Globals["rearrange_inputs"] = (System.Object)RearrangeInputs;
 
         script.Globals["update_def"] = (System.Object)UpdateDef;
+        script.Globals["add_vibe_power"] = (System.Object)AddVibePower;
 
         Log(String.Format("Cache user defined functions"));
         //cache functions
@@ -622,7 +623,16 @@ class RRLuaEnemy : RREnemy
         spawnEnemyOnDeathData.RelativeGridPostionToSpawnAt = new int2(rel_x, rel_y);
         _enemiesToSpawnOnDeath.Add(spawnEnemyOnDeathData);
     }
-
+    public void AddVibePower(float amount)
+    {
+        RRStageController rrsc = RRStageControllerPatch.instance;
+        rrsc._currentVibePower += amount;
+        if (rrsc._currentVibePower > (float)rrsc._maxVibePower)
+        {
+            rrsc._currentVibePower = rrsc._maxVibePower;
+        }
+        rrsc._stageUIView.UpdateVibePower(rrsc._currentVibePower, rrsc._maxVibePower, rrsc._minVibePowerToActivate, rrsc._isTutorial);
+    }
     public void SetHealth(int amount)
     {
         CurrentHealthValue = amount;

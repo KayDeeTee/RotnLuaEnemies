@@ -25,6 +25,8 @@ internal static class RRStageControllerPatch
             return;
         }
 
+        EnemyPlugin.Logger.LogInfo(currentScenePayload.GetLevelId());
+
         LuaPath = Path.Combine(Path.GetDirectoryName(payload.GetBeatmapFileName()), "Lua");
         instance = __instance;
 
